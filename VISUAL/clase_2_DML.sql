@@ -42,4 +42,15 @@ INSERT INTO productos (id_categoria, nombre, precio, stock) VALUES
     (3, "Kit de marcadores", 15000,  150),
     (4, "Balon de futbol", 85000, 60),
     (4, "Bicicleta estatica", 1200000, 5);
-    
+
+
+    --Insertar datos de clientes el ultimo no tiene telefono 
+    INSERT INTO clientes (tipo_documento,numero_documento,	nombres,	apellidos,	email,	telefono,	ciudad,)	 VALUES
+    ("CC", "1001001001", "Ana Maria" "Gomez Ruiz", "ana.gomez@correo.com", "3001112233", "Medellin"),
+    ("CC", "1002002002", "Carlos Andres" "Perez Diaz", "carlos.perez@correo.com", "3012223344", "Bogota"),
+    ("CC", "1003003003", "Luisa Fernanda", "Martinez Rios", "luisa.martinez@correo.com", "3023334455", "Cali"),
+    ("TI", "1004004004", "Juan David" "Restrepo toro", "juan.restrepo@correo.com", "3034445566", "Medellin"),
+    ("CE", "1005005005", "Valentina" "Herrera Lopez", "valentina.herrera@correo.com", "3045556677", "Barranquilla"),
+    ("CC", "1006006006", "Santiago" "Ramirez Castro", "santiago.ramirez@correo.com", "3056667788", "Bogota"),
+    ("CC", "1007007007", "Daniela" "Ospina Vargas", "daniela.ospina@correo.com", "3067778899", "Medellin"),
+    ("CC", "1008008008", "Mateo" "Londoño Giraldo", "Mateo.londoño@correo.com", NULL, "Pereira"),
