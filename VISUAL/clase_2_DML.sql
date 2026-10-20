@@ -299,7 +299,7 @@ GROUP BY estado;
 
 
 
-_________________________________________________________________________________________________________________________
+___20/10/2026______________________________________________________________________________________________________________________
 --subconsuktas una consulta dentro de otra
 -- subconsultas en where (valor unico) productos mas caros que el promedio
 SELECT nombre, precio
@@ -323,12 +323,64 @@ SELECT cl.nombre, cl.apellido,
 
 
 --subconsulta en from (tabla derivada)promedio de compra por cliente
-SELECT ROUND(AVG(t.total_cliente), 2) AS promedio_compra_por_cliente
+ SELECT ROUND(AVG(t.total_cliente), 2)  AS promedio_compra_por_cliente
+FROM (SELECT id_cliente, SUM(total) AS total_cliente
 FROM pedidos
 WHERE estado <> 'CANCELADO'
-GROUP BY id_cliente AS t;
+GROUP BY id_cliente) AS t;
 
 /*en Mysql una tabla derivada necesita un alias (t) y no puede usar el alias en la misma consulta,
  por eso hace una subconsulta en el FROM*/
 
  --subconsulta correlaccionada productos mas caros que el promedio de su categoria
+SELECT p.nombre, p.precio, p.id_categoria
+FROM productos p
+WHERE p.precio > (SELECT AVG(p2.precio)
+    FROM productos p2
+    WHERE p2.id_categoria = p.id_categoria);
+
+    --subconsulta el pedido de mayor valor con MAX
+SELECT id_pedido, id_cliente, total
+FROM pedidos
+WHERE total = (SELECT MAX(total) FROM pedidos);
+
+
+/*
+CRUD COMPLETO + TRANSACCIONES 
+Una transaccion agrupa varias sentencias en una sola unidad o
+ se guardan TODAS en un commit o no se guarda ninguna ROLLBACK
+ propiedades: ACID: Atomicidad, Consistencia, Aislamiento, Durabilidad
+*/
+
+-- C= create registrar un cliente nuevo
+INSERT INTO clientes (tipo_documento, numero_documento, nombres, apellidos, email, telefono, ciudad)
+VALUES ('CC', '109009009', 'Sofia', 'Cardona Mejia', 'sofia.cardona@email.com', '3109990000', 'Manizales');
+
+-- R= read consultarlo
+SELECT * FROM clientes WHERE numero_documento = '109009009';
+
+--U= update modificar un cliente existente
+UPDATE clientes
+SET telefono = '3201234567',
+    ciudad = 'Armenia'
+WHERE numero_documento = '109009009';
+
+SELECT * FROM clientes WHERE numero_documento = '109009009';
+
+--DELETE Eliminar siempre con WHERE por que sin WHERE elimina toda la tabla
+DELETE FROM clientes WHERE numero_documento = '109009009';
+
+--transacciones: con rollback simulamos una venta y nos arrepentimos de la venta y no se guarda nada en la base de datos
+START TRANSACTION;
+INSERT INTO pedidos (id_cliente, estado) VALUES (8, "PENDIENTE");
+SET @nuevo_pedido_id = LAST_INSERT_ID(); --ID generado por el ultimo INSERT
+
+INSERT INTO detalle_pedido (id_pedido, id_producto, cantidad, precio_unitario)
+VALUES (@nuevo_pedido_id, 12, 1, 1200000);
+
+UPDATE productos SET stock = stock - 1 WHERE id_producto = 12;
+
+SELECT * FROM pedidos WHERE id_pedido = @nuevo_pedido;
+--dentro de la transaccion se puede consultar lo que se ha hecho pero no se ve por fuera
+
+ROLLBACK; -- deshacer la transaccion y no se guarda nada en la base de datos 
