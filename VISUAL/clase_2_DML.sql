@@ -238,7 +238,7 @@ GROUP BY => agrupa filas con el mismo valor en una columna
 --Resumen general de productos 
 SELECT COUNT(*) AS total_productos,
     SUM(stock) AS total_en_bodega,
-    ROUND(AVG(precio), 2) AS precio_promedio
+    ROUND(AVG(precio), 2) AS precio_promedio,
     MIN(precio) AS precio_minimo,
     MAX(precio) AS precio_maximo
 FROM productos;
@@ -246,7 +246,7 @@ FROM productos;
 --Cantidad de productos y valor del inventario por categoria
 SELECT c.nombre AS categoria,
     COUNT(p.id_producto) AS categoria,
-    SUM(p.id_produto) AS cantidad_productos,
+    SUM(p.id_producto) AS cantidad_productos,
     SUM(p.precio* p.stock) AS valor_inventario
     FROM categorias c
     LEFT JOIN productos p ON p.id_categoria = c.id_categoria
@@ -275,12 +275,12 @@ GROUP BY cl.id_cliente, cl.nombres, cl.apellidos
 HAVING total_comprado > 1000000; --FILTRA LOS GRUPOS
 
 --VENTAS POR MES
-SELECT DATE_FORMAT(pe.fecha_pedido, '%Y-%m') AS mes,
-        COUNT (*) AS PEDIDOS, 
-       SUM(total) AS ventas,
-FROM pedidos 
+SELECT DATE_FORMAT(fecha_pedido, '%Y-%m') AS mes,
+	COUNT(*) AS pedidos, 
+    SUM(total) AS ventas
+FROM pedidos
 WHERE estado <> 'CANCELADO'
-GROUP BY DATE_FORMAT(fecha_pedido, '%Y-%m');
+GROUP BY DATE_FORMAT(fecha_pedido, '%Y-%m') 
 ORDER BY mes;
 
 --unidades vendidas por producto
@@ -296,3 +296,39 @@ ORDER BY unidades_vendidas DESC;
 SELECT estado, COUNT(*) AS cantidad, SUM(total) AS valor
 FROM pedidos
 GROUP BY estado;
+
+
+
+_________________________________________________________________________________________________________________________
+--subconsuktas una consulta dentro de otra
+-- subconsultas en where (valor unico) productos mas caros que el promedio
+SELECT nombre, precio
+FROM productos
+WHERE precio > (SELECT AVG(precio) FROM productos);
+
+--subconsulta con IN (listas) clientes que han hecho al menos un pedido
+SELECT nombres, apellidos
+FROM clientes
+WHERE id_cliente IN (SELECT id_cliente FROM pedidos);
+
+--NOT EXISTS: CATEGORIAS QUE NO TIENEN PRODUCTOS
+SELECT c.nombre
+FROM categorias c
+WHERE NOT EXISTS (SELECT 1 FROM productos p WHERE p.id_categoria = c.id_categoria);
+
+--subconsulta escalar en el select: numero de pedidos de cada cliente
+SELECT cl.nombre, cl.apellido,
+    (SELECT COUNT(*) FROM pedidos pe WHERE pe.id_cliente = cl.id_cliente) AS cantidad_pedidos
+    FROM clientes cl;
+
+
+--subconsulta en from (tabla derivada)promedio de compra por cliente
+SELECT ROUND(AVG(t.total_cliente), 2) AS promedio_compra_por_cliente
+FROM pedidos
+WHERE estado <> 'CANCELADO'
+GROUP BY id_cliente AS t;
+
+/*en Mysql una tabla derivada necesita un alias (t) y no puede usar el alias en la misma consulta,
+ por eso hace una subconsulta en el FROM*/
+
+ --subconsulta correlaccionada productos mas caros que el promedio de su categoria
