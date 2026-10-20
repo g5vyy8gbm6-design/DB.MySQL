@@ -2,7 +2,7 @@
 acciones Crea, consultar, modificar, eliminar
 Realizar consultas con select con filtros orden y
 limites
-4567
+
 joins (Inner, left, right, full emulado)
 agregaaciones count sum avs min max group by, having
 subconsultas
@@ -224,3 +224,75 @@ UNION
 SELECT c.nombre, p.nombre
 FROM categorias c RIGHT JOIN productos p ON p.id_categoria = c.id_categoria;
 
+
+____________________________________________________________________________
+/*FUNCIONES DE AGREGACION, GROUP BY Y HAVING
+-------------------------------------------------------------------
+COUNT, SUM, AVG MIN, MAX, resumen muchas filas en un solo valor.
+GROUP BY => agrupa filas con el mismo valor en una columna 
+ HAVING => filtra grupos (como WHERE pero para grupos).
+ Regla: toda columna que no este en una funcion de agregacion debe
+ ir en el GROUP BY.
+*/
+
+--Resumen general de productos 
+SELECT COUNT(*) AS total_productos,
+    SUM(stock) AS total_en_bodega,
+    ROUND(AVG(precio), 2) AS precio_promedio
+    MIN(precio) AS precio_minimo,
+    MAX(precio) AS precio_maximo
+FROM productos;
+
+--Cantidad de productos y valor del inventario por categoria
+SELECT c.nombre AS categoria,
+    COUNT(p.id_producto) AS categoria,
+    SUM(p.id_produto) AS cantidad_productos,
+    SUM(p.precio* p.stock) AS valor_inventario
+    FROM categorias c
+    LEFT JOIN productos p ON p.id_categoria = c.id_categoria
+    GROUP BY c.nombre
+    ORDER BY valor_inventario DESC;
+
+
+--  TOTAL COMPRADO POR CLIENTE (SIN PEDIDOS CANCELADOS)
+SELECT CONCAT(cl.nombres, " ", cl.apellidos) AS cliente,
+       COUNT(pe.id_pedido) AS total_pedidos,
+       SUM(pe.total) AS total_comprado
+FROM clientes cl
+INNER JOIN pedidos pe ON pe.id_cliente = cl.id_cliente
+WHERE pe.estado <> 'CANCELADO' -- where: filtra filas antes de agrupar
+GROUP BY cl.id_cliente, cl.nombres, cl.apellidos
+ORDER BY total_comprado DESC;
+
+
+--HAVING: clientes que han comprado mas de 1.000.000
+SELECT CONCAT(cl.nombres, " ", cl.apellidos) AS cliente,
+       sum(pe.total) AS total_comprado
+FROM clientes cl
+INNER JOIN pedidos pe ON pe.id_cliente = cl.id_cliente
+WHERE pe.estado <> 'CANCELADO'
+GROUP BY cl.id_cliente, cl.nombres, cl.apellidos
+HAVING total_comprado > 1000000; --FILTRA LOS GRUPOS
+
+--VENTAS POR MES
+SELECT DATE_FORMAT(pe.fecha_pedido, '%Y-%m') AS mes,
+        COUNT (*) AS PEDIDOS, 
+       SUM(total) AS ventas,
+FROM pedidos 
+WHERE estado <> 'CANCELADO'
+GROUP BY DATE_FORMAT(fecha_pedido, '%Y-%m');
+ORDER BY mes;
+
+--unidades vendidas por producto
+SELECT pr.nombre, SUM(d.cantidad) AS unidades_vendidas 
+FROM detalle_pedido d 
+INNER JOIN productos pr ON pr.id_producto = d.id_producto 
+INNER JOIN pedidos pe ON pe.id_pedido = d.id_pedido
+WHERE pe.estado <> 'CANCELADO' 
+GROUP BY pr.id_producto, pr.nombre 
+ORDER BY unidades_vendidas DESC; 
+
+--pedidos por estado
+SELECT estado, COUNT(*) AS cantidad, SUM(total) AS valor
+FROM pedidos
+GROUP BY estado;
