@@ -45,14 +45,14 @@ INSERT INTO productos (id_categoria, nombre, precio, stock) VALUES
 
 
     --Insertar datos de clientes el ultimo no tiene telefono 
-    INSERT INTO clientes (tipo_documento,numero_documento,	nombres,	apellidos,	email,	telefono,	ciudad,)	 VALUES
-    ("CC", "1001001001", "Ana Maria" "Gomez Ruiz", "ana.gomez@correo.com", "3001112233", "Medellin"),
-    ("CC", "1002002002", "Carlos Andres" "Perez Diaz", "carlos.perez@correo.com", "3012223344", "Bogota"),
+    INSERT INTO clientes (tipo_documento, numero_documento,	nombres,	apellidos,	email,	telefono,	ciudad,)	 VALUES
+    ("CC", "1001001001", "Ana Maria", "Gomez Ruiz", "ana.gomez@correo.com", "3001112233", "Medellin"),
+    ("CC", "1002002002", "Carlos Andres", "Perez Diaz", "carlos.perez@correo.com", "3012223344", "Bogota"),
     ("CC", "1003003003", "Luisa Fernanda", "Martinez Rios", "luisa.martinez@correo.com", "3023334455", "Cali"),
-    ("TI", "1004004004", "Juan David" "Restrepo toro", "juan.restrepo@correo.com", "3034445566", "Medellin"),
-    ("CE", "1005005005", "Valentina" "Herrera Lopez", "valentina.herrera@correo.com", "3045556677", "Barranquilla"),
-    ("CC", "1006006006", "Santiago" "Ramirez Castro", "santiago.ramirez@correo.com", "3056667788", "Bogota"),
-    ("CC", "1007007007", "Daniela" "Ospina Vargas", "daniela.ospina@correo.com", "3067778899", "Medellin"),
+    ("TI", "1004004004", "Juan David", "Restrepo toro", "juan.restrepo@correo.com", "3034445566", "Medellin"),
+    ("CE", "1005005005", "Valentina", "Herrera Lopez", "valentina.herrera@correo.com", "3045556677", "Barranquilla"),
+    ("CC", "1006006006", "Santiago", "Ramirez Castro", "santiago.ramirez@correo.com", "3056667788", "Bogota"),
+    ("CC", "1007007007", "Daniela", "Ospina Vargas", "daniela.ospina@correo.com", "3067778899", "Medellin"),
     ("CC", "1008008008", "Mateo" "Londoño Giraldo", "Mateo.londoño@correo.com", NULL, "Pereira"),
 
     
@@ -380,7 +380,126 @@ VALUES (@nuevo_pedido_id, 12, 1, 1200000);
 
 UPDATE productos SET stock = stock - 1 WHERE id_producto = 12;
 
-SELECT * FROM pedidos WHERE id_pedido = @nuevo_pedido;
---dentro de la transaccion se puede consultar lo que se ha hecho pero no se ve por fuera
+SELECT * FROM pedidos WHERE id_pedido = @nuevo_pedido; --dentro de la transaccion se puede consultar lo que se ha hecho pero no se ve por fuera
 
-ROLLBACK; -- deshacer la transaccion y no se guarda nada en la base de datos 
+ROLLBACK; -- deshacer la transaccion y no se guarda nada en la base de datos
+
+
+SELECT * FROM pedidos WHERE id_pedido = @nuevo_pedido_id; --ya no existe
+SELECT stock FROM productos WHERE id_producto = 12; --el stock debe
+
+--transaccion on COMMIT: bubir 5% el precio de deportes
+START TRANSACTION;
+UPDATE productos
+ SET precio = ROUND(precio * 1.05, 0)
+ WHERE id_categoria = (SELECT id_categoria FROM categorias WHERE nombre = 'Deportes');
+ COMMIT;
+--confirma el cambio de forma permanente
+SELECT nombre, precio FROM productos WHERE id_categoria = 4;
+
+--DELETE en cascada: al borrar un pedido se borran sus detalles
+INSERT INTO pedidos (id_cliente, estado) VALUES (8, "Pendiente");
+SET @pedido_tem = LAST_INSERT_ID();
+INSERT INTO detalle_pedido (id_pedido, id_producto, cantidad, precio_unitario)
+VALUES (@pedido_tem, 2, 1, 45000);
+
+SELECT COUNT(*) AS detalles_antes FROM detalle_pedido
+WHERE id_pedido = @pedido_tem; --1
+DELETE FROM pedidos WHERE id_pedido = @pedido_tem;
+SELECT COUNT(*) AS detalles_despues FROM detalle_pedido WHERE id_pedido = @pedido_tem; --0
+
+
+
+
+--TALLER 2
+/*1. Inserte 3 provedores y asignelos con UPDATE: proveedor 1 y a los productos de tecnologia, proveedor 2
+a hogar y proveedor 3 a papeleria*/
+INSERT INTO proveedores (id_proveedor,	nit,	razon_social,	telefono, email, ciudad, activo) VALUES
+(1, "1009009009", "Proveedor 1", "3076667788", "proveedor1@correo.com", "Medellin", 1),
+(2, "1009009010", "Proveedor 2", "3077778899", "proveedor2@correo.com", "Bogota", 1),
+(3, "1009009011", "Proveedor 3", "3078889900", "proveedor3@correo.com", "Cali", 1);
+
+UPDATE productos
+SET id_proveedor = 1
+WHERE id_categoria = (SELECT id_categoria FROM categorias WHERE nombre = "Tecnologia");
+UPDATE productos
+SET id_proveedor = 2
+WHERE id_categoria = (SELECT id_categoria FROM categorias WHERE nombre = "Hogar");
+UPDATE productos
+SET id_proveedor = 3
+WHERE id_categoria = (SELECT id_categoria FROM categorias WHERE nombre = "Papeleria");
+
+/*2. liste TODOS los productos con su categoria y el nombre de su
+proveedor (los que no tienen proveedor deben aparecer igual) */
+SELECT p.nombre AS producto,
+c.nombre AS categoria,
+       pr.razon_social AS proveedor
+FROM productos p
+LEFT JOIN categorias c ON c.id_categoria = p.id_categoria
+LEFT JOIN proveedores pr ON pr.id_proveedor = p.id_proveedor
+ORDER BY c.nombre, p.nombre;
+
+/*3. Muestre el total vendido por ciudad del cliente (sin cancelados),
+ordenado de mayor a menor*/
+SELECT c.ciudad, SUM(dp.cantidad * dp.precio_unitario) AS total_vendido
+FROM clientes c
+JOIN pedidos p ON c.id_cliente = p.id_cliente
+JOIN detalle_pedido dp ON p.id_pedido = dp.id_pedido
+WHERE p.estado != "CANCELADO"
+GROUP BY c.ciudad
+ORDER BY total_vendido DESC;
+
+/*4.¿Cual es el producto con mas unidades vendidas? (use limit)*/
+SELECT p.nombre AS producto, SUM(dp.cantidad) AS unidades_vendidas
+FROM productos p
+JOIN detalle_pedido dp ON p.id_producto = dp.id_producto
+JOIN pedidos pe ON dp.id_pedido = pe.id_pedido
+WHERE pe.estado != "CANCELADO"
+GROUP BY p.id_producto, p.nombre
+ORDER BY unidades_vendidas DESC
+LIMIT 1;
+
+/*
+5. Liste los clientes cuyo total comprado es mayor al promedio de compra por cliente (use subconsulta en el HAVING).
+*/
+SELECT c.id_cliente, c.nombre, SUM(dp.cantidad * dp.precio_unitario) AS total_comprado
+FROM clientes c
+JOIN pedidos p ON c.id_cliente = p.id_cliente
+JOIN detalle_pedido dp ON p.id_pedido = dp.id_pedido
+WHERE p.estado != "CANCELADO"
+GROUP BY c.id_cliente, c.nombre
+
+HAVING total_comprado > (SELECT AVG(total) FROM (SELECT SUM(dp2.cantidad * dp2.precio_unitario) AS total
+
+FROM clientes c2
+JOIN pedidos p2 ON c2.id_cliente = p2.id_cliente
+JOIN detalle_pedido dp2 ON p2.id_pedido = dp2.id_pedido
+WHERE p2.estado != "CANCELADO"
+GROUP BY c2.id_cliente) AS promedios);
+
+/* Liste las categorías de las que NO se ha vendido ningún producto
+(use NOT EXISTS) .*/
+SELECT c.nombre AS categoria
+FROM categorias c
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM productos p
+    JOIN detalle_pedido dp ON p.id_producto = dp.id_producto
+    JOIN pedidos pe ON dp.id_pedido = pe.id_pedido
+    WHERE p.id_categoria = c.id_categoria
+    AND pe.estado != "CANCELADO"
+);
+
+/*Dentro de una transacción suba 10% el precio de los productos de Papelería,
+consulte el resultado y deshaga el cambio con ROLLBACK.*/
+START TRANSACTION;
+UPDATE productos
+SET precio = ROUND(precio * 1.10, 0)
+WHERE id_categoria = (SELECT id_categoria FROM categorias WHERE nombre = "Papeleria");
+
+
+/* Elimine los pedidos CANCELADOS y verifique que su detalle también se eliminó (ON DELETE CASCADE).*/
+DELETE FROM pedidos WHERE estado = "CANCELADO";
+
+SELECT * FROM detalle_pedido WHERE id_pedido NOT IN (SELECT id_pedido FROM pedidos);
+
