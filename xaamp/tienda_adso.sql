@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 21-10-2026 a las 00:00:19
+-- Tiempo de generación: 22-10-2026 a las 00:14:28
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -193,8 +193,8 @@ INSERT INTO `productos` (`id_producto`, `id_categoria`, `Nombre`, `Precio`, `STO
 (8, 3, 'Cuaderno 100 hojas', 8500.00, 500, 1, '2026-10-14 15:37:29', NULL),
 (9, 3, 'Resma de papel carta', 220000.00, 200, 1, '2026-10-14 15:37:29', NULL),
 (10, 3, 'Kit de marcadores', 15000.00, 150, 1, '2026-10-14 15:37:29', NULL),
-(11, 4, 'Balon de futbol', 85000.00, 60, 1, '2026-10-14 15:37:29', NULL),
-(12, 4, 'Bicicleta estatica', 1200000.00, 5, 1, '2026-10-14 15:37:29', NULL);
+(11, 4, 'Balon de futbol', 89250.00, 60, 1, '2026-10-14 15:37:29', NULL),
+(12, 4, 'Bicicleta estatica', 1260000.00, 5, 1, '2026-10-14 15:37:29', NULL);
 
 -- --------------------------------------------------------
 
