@@ -477,7 +477,7 @@ JOIN detalle_pedido dp2 ON p2.id_pedido = dp2.id_pedido
 WHERE p2.estado != "CANCELADO"
 GROUP BY c2.id_cliente) AS promedios);
 
-/* Liste las categorías de las que NO se ha vendido ningún producto
+/*6. Liste las categorías de las que NO se ha vendido ningún producto
 (use NOT EXISTS) .*/
 SELECT c.nombre AS categoria
 FROM categorias c
@@ -490,7 +490,7 @@ WHERE NOT EXISTS (
     AND pe.estado != "CANCELADO"
 );
 
-/*Dentro de una transacción suba 10% el precio de los productos de Papelería,
+/*7. Dentro de una transacción suba 10% el precio de los productos de Papelería,
 consulte el resultado y deshaga el cambio con ROLLBACK.*/
 START TRANSACTION;
 UPDATE productos
@@ -498,7 +498,7 @@ SET precio = ROUND(precio * 1.10, 0)
 WHERE id_categoria = (SELECT id_categoria FROM categorias WHERE nombre = "Papeleria");
 
 
-/* Elimine los pedidos CANCELADOS y verifique que su detalle también se eliminó (ON DELETE CASCADE).*/
+/*8. Elimine los pedidos CANCELADOS y verifique que su detalle también se eliminó (ON DELETE CASCADE).*/
 DELETE FROM pedidos WHERE estado = "CANCELADO";
 
 SELECT * FROM detalle_pedido WHERE id_pedido NOT IN (SELECT id_pedido FROM pedidos);
