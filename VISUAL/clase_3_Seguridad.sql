@@ -84,18 +84,76 @@ VALUES (p_id_cliente,
 END //
 
 --3.2 login compara hashes cuenta intentos fallidos y bloquea el 3 intento 
+DELIMITER //
+
 CREATE PROCEDURE sp_login(
     IN p_nombre_usuario VARCHAR(50),
-    IN p_password VARCHAR(100)
-    OUT p_resultado VARCHAR (100)
-
+    IN p_password VARCHAR(100),
+    OUT p_resultado VARCHAR(100)
 )
 BEGIN
-DECLARE v_id INT DEFAULT NULL;
-DECLARE v_hash CHAR (64);
-DECLARE v_salt CHAR (32);
-DECLARE v_bloqueado BOOLEAN;
-DECLARE v_intentos INT;
+    DECLARE v_id INT DEFAULT NULL;
+    DECLARE v_hash CHAR(64);  
+    DECLARE v_salt CHAR(32); 
+    DECLARE v_bloqueado BOOLEAN;
+    DECLARE v_intentos INT;
 
---Si el select no encuentra el usuario, no hay error: v_id queda NULL
-DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_id = NULL;
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_id = NULL;
+
+    SELECT id_usuario, password_hash, salt, bloqueado, intentos_fallidos
+    INTO v_id, v_hash, v_salt, v_bloqueado, v_intentos
+    FROM usuarios
+    WHERE nombre_usuario = p_nombre_usuario AND activo = true; 
+
+    IF v_id IS NULL THEN
+        SET p_resultado = 'Usuario o contraseña incorrectos';
+    ELSEIF v_bloqueado THEN 
+        SET p_resultado = 'Usuario bloqueado. Contacte al administrador';
+    ELSEIF v_hash = SHA2(CONCAT(v_salt, p_password), 256) THEN
+        UPDATE usuarios 
+        SET intentos_fallidos = 0, ultimo_acceso = NOW()
+        WHERE id_usuario = v_id;
+        SET p_resultado = 'Acceso concedido';
+    ELSE
+        UPDATE usuarios
+        SET intentos_fallidos = v_intentos + 1,
+            bloqueado = (v_intentos + 1 >= 3) 
+        WHERE id_usuario = v_id;
+        SET p_resultado = 'Usuario o contraseña incorrectos';
+    END IF; -- Faltaba el punto y coma aquí
+
+END//
+
+DELIMITER ;
+
+-- 3.3 Cambiar contraseña: exige la clave actual y genera salt nuevo
+CREATE PROCEDURE sp_cambiar_password(
+    IN p_nombre_usuario VARCHAR(50);
+    IN p_password_actual VARCHAR(100);
+    IN p_password_nueva VARCHAR(100);
+    OUT p_resultado VARCHAR(100)
+)
+BEGIN 
+DECLARE v_salt_nuevo CHAR(32);
+
+IF NOT EXISTS (SELECT 1 FROM usuarios
+WHERE nombre_usuario = p_nombre_usuario 
+AND password_hash = SHA2(CONCAT(salt, p_password_actual), 256)) THEN
+SET p_resultado = "la contraseña actual no es correcta";
+ELSEIF CHAR_LENGTH(p_password_nueva) < 8
+OR CAST(p_password_nueva AS BYNARY) = CAST(LOWER(p_password_nueva) AS BYNARY)
+OR p_password_nueva NOT REGEXP '[0-9]' THEN
+SET p_resultado = "la nueva contraseña no cumple la politica";
+
+ELSE
+SET v_salt_nuevo = LEFT(SHA2(CONCAT(UUID(), RAND(), NOW(6)), 256), 32);
+UPDATE usuarios
+SET salt = v_salt_nuevo,
+password_hash = SHA2(CONCAT(v_salt_nuevo, p_password_nueva), 256)
+WHERE nombre_usuario = p_nombre_usuario;
+SET p_resultado = "contraseña actualizada";
+END IF;
+
+END//
+
+DELIMITER ;

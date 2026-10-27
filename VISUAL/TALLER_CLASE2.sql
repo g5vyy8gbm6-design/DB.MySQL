@@ -100,4 +100,3 @@ SELECT * FROM detalle_pedido WHERE id_pedido IN (SELECT id_pedido FROM pedidos W
        DELETE FROM pedidos WHERE estado = "CANCELADO";
 
 SELECT * FROM detalle_pedido WHERE id_pedido NOT IN (SELECT id_pedido FROM pedidos);
-
