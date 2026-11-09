@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 27-10-2026 a las 22:57:57
+-- Tiempo de generación: 09-11-2026 a las 23:15:07
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -25,6 +25,28 @@ DELIMITER $$
 --
 -- Procedimientos
 --
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_cambiar_password` (IN `p_nombre_usuario` VARCHAR(50), IN `p_password_actual` VARCHAR(100), IN `p_password_nueva` VARCHAR(100), OUT `p_resultado` VARCHAR(100))   BEGIN 
+DECLARE v_salt_nuevo CHAR(32);
+
+IF NOT EXISTS (SELECT 1 FROM usuarios
+WHERE nombre_usuario = p_nombre_usuario 
+AND password_hash = SHA2(CONCAT(salt, p_password_actual), 256)) THEN
+SET p_resultado = "la contraseña actual no es correcta";
+ELSEIF CHAR_LENGTH(p_password_nueva) < 8
+OR CAST(p_password_nueva AS BINARY) = CAST(LOWER(p_password_nueva) AS BINARY)
+OR p_password_nueva NOT REGEXP '[0-9]' THEN
+SET p_resultado = "la nueva contraseña no cumple la politica";
+ELSE
+SET v_salt_nuevo = LEFT(SHA2(CONCAT(UUID(), RAND(), NOW(6)), 256), 32);
+UPDATE usuarios
+SET salt = v_salt_nuevo,
+password_hash = SHA2(CONCAT(v_salt_nuevo, p_password_nueva), 256)
+WHERE nombre_usuario = p_nombre_usuario;
+SET p_resultado = "contraseña actualizada";
+END IF;
+
+END$$
+
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_login` (IN `p_nombre_usuario` VARCHAR(50), IN `p_password` VARCHAR(100), OUT `p_resultado` VARCHAR(100))   BEGIN
 DECLARE v_id INT DEFAULT NULL;
 DECLARE v_hash CHAR (64);  
@@ -89,6 +111,21 @@ DELIMITER ;
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `auditoria_seguridad`
+--
+
+CREATE TABLE `auditoria_seguridad` (
+  `id_auditoria` int(11) NOT NULL,
+  `id_usuario` int(11) NOT NULL,
+  `accion` varchar(30) NOT NULL,
+  `detalle` varchar(255) NOT NULL,
+  `usuario_bd` varchar(100) NOT NULL,
+  `fecha` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `categorias`
 --
 
@@ -125,7 +162,7 @@ CREATE TABLE `clientes` (
   `telefono` varchar(50) DEFAULT NULL,
   `ciudad` varchar(50) NOT NULL,
   `fecha_de_registro` datetime NOT NULL DEFAULT current_timestamp()
-) ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Volcado de datos para la tabla `clientes`
@@ -153,7 +190,7 @@ CREATE TABLE `detalle_pedido` (
   `id_producto` int(11) NOT NULL,
   `cantidad` varchar(30) NOT NULL,
   `precio_unitario` decimal(12,2) NOT NULL
-) ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Volcado de datos para la tabla `detalle_pedido`
@@ -207,7 +244,7 @@ CREATE TABLE `pedidos` (
   `fecha_pedido` datetime NOT NULL DEFAULT current_timestamp(),
   `estado` varchar(20) NOT NULL DEFAULT 'Pendiente',
   `total` decimal(12,2) NOT NULL DEFAULT 0.00
-) ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Volcado de datos para la tabla `pedidos`
@@ -239,7 +276,7 @@ CREATE TABLE `productos` (
   `stock` int(11) NOT NULL DEFAULT 0,
   `activo` tinyint(1) NOT NULL DEFAULT 1,
   `fecha_registrada` datetime NOT NULL DEFAULT current_timestamp()
-) ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Volcado de datos para la tabla `productos`
@@ -303,11 +340,35 @@ CREATE TABLE `usuarios` (
   `bloqueado` tinyint(1) NOT NULL DEFAULT 0,
   `ultimo_acceso` datetime DEFAULT NULL,
   `fecha_creacion` datetime NOT NULL DEFAULT current_timestamp()
-) ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Disparadores `usuarios`
+--
+DELIMITER $$
+CREATE TRIGGER `trg_usuarios_auditoria` AFTER UPDATE ON `usuarios` FOR EACH ROW BEGIN 
+IF NEW.password_hash <> OLD.password_hash THEN
+INSERT INTO auditoria_usuarios (id_usuario, accion, detalle, usuario_bd)
+VALUES (NEW.id_usuario, 'CAMBIO_PASSWORD', 'se cambio la contraseña', CURRENT_USER());
+END IF;
+
+IF NEW.bloqueado = TRUE and OLD.bloqueado = FALSE THEN
+INSERT INTO auditoria_usuarios (id_usuario, accion, detalle, usuario_bd)
+VALUES (NEW.id_usuario, 'BLOQUEO', 'Bloqueado por 3 intentos fallidos', CURRENT_USER());
+END IF;
+END
+$$
+DELIMITER ;
 
 --
 -- Índices para tablas volcadas
 --
+
+--
+-- Indices de la tabla `auditoria_seguridad`
+--
+ALTER TABLE `auditoria_seguridad`
+  ADD PRIMARY KEY (`id_auditoria`);
 
 --
 -- Indices de la tabla `categorias`
@@ -379,6 +440,12 @@ ALTER TABLE `usuarios`
 --
 
 --
+-- AUTO_INCREMENT de la tabla `auditoria_seguridad`
+--
+ALTER TABLE `auditoria_seguridad`
+  MODIFY `id_auditoria` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT de la tabla `categorias`
 --
 ALTER TABLE `categorias`
@@ -388,13 +455,13 @@ ALTER TABLE `categorias`
 -- AUTO_INCREMENT de la tabla `clientes`
 --
 ALTER TABLE `clientes`
-  MODIFY `id_cliente` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_cliente` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT de la tabla `detalle_pedido`
 --
 ALTER TABLE `detalle_pedido`
-  MODIFY `id_detalle` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_detalle` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT de la tabla `direcciones_envio`
@@ -406,13 +473,13 @@ ALTER TABLE `direcciones_envio`
 -- AUTO_INCREMENT de la tabla `pedidos`
 --
 ALTER TABLE `pedidos`
-  MODIFY `id_pedido` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_pedido` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT de la tabla `productos`
 --
 ALTER TABLE `productos`
-  MODIFY `id_producto` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_producto` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT de la tabla `proveedores`
