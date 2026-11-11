@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.1
+-- version 5.2.3
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 09-11-2026 a las 23:15:07
--- Versión del servidor: 10.4.32-MariaDB
--- Versión de PHP: 8.2.12
+-- Tiempo de generación: 11-11-2026 a las 17:41:37
+-- Versión del servidor: 10.11.16-MariaDB
+-- Versión de PHP: 8.3.36
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -111,17 +111,25 @@ DELIMITER ;
 -- --------------------------------------------------------
 
 --
--- Estructura de tabla para la tabla `auditoria_seguridad`
+-- Estructura de tabla para la tabla `auditoria_usuarios`
 --
 
-CREATE TABLE `auditoria_seguridad` (
-  `id_auditoria` int(11) NOT NULL,
+CREATE TABLE `auditoria_usuarios` (
+  `d_auditoria` int(11) NOT NULL,
   `id_usuario` int(11) NOT NULL,
   `accion` varchar(30) NOT NULL,
   `detalle` varchar(255) NOT NULL,
   `usuario_bd` varchar(100) NOT NULL,
   `fecha` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `auditoria_usuarios`
+--
+
+INSERT INTO `auditoria_usuarios` (`d_auditoria`, `id_usuario`, `accion`, `detalle`, `usuario_bd`, `fecha`) VALUES
+(1, 4, 'BLOQUEO', 'Bloqueado por 3 intentos fallidos', 'root@localhost', '2026-11-10 14:42:12'),
+(2, 3, 'CAMBIO_PASSWORD', 'se cambio la contraseña', 'root@localhost', '2026-11-10 14:43:24');
 
 -- --------------------------------------------------------
 
@@ -343,6 +351,16 @@ CREATE TABLE `usuarios` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
+-- Volcado de datos para la tabla `usuarios`
+--
+
+INSERT INTO `usuarios` (`id_usuario`, `id_cliente`, `nombre_usuario`, `email`, `password_hash`, `salt`, `rol`, `activo`, `intentos_fallidos`, `bloqueado`, `ultimo_acceso`, `fecha_creacion`) VALUES
+(1, NULL, 'admin', 'admin@tienda.com', '6426abea8bc4b297714d090a18741d7d397172faadcd53c7e35cefeb8ffb723e', '4986d27e091778ef82174376faf60f7a', 'ADMIN', 1, 0, 0, NULL, '2026-11-10 14:27:26'),
+(2, NULL, 'vendedor', 'ventas@tienda.com', 'ab4db82e9e7f1f9d1c48da42af4d373e0d8c3cacbed24adac07e2672bc54f065', '29cc261ddcbcc4fbb91fd0bf3d7f51bc', 'VENDEDOR', 1, 0, 0, NULL, '2026-11-10 14:27:26'),
+(3, 1, 'ana.gomez', 'ana.gomez@tienda.com', '9f77856e07f5dafc40adf894d81aa49bf2485572dbf9da41a61b42705a51ac01', 'f171416cf217b9f84ede30bced5728fa', 'CLIENTE', 1, 0, 0, '2026-11-10 14:41:43', '2026-11-10 14:27:26'),
+(4, 2, 'carlos.perez', 'carlos.perez@tienda.com', 'b33d642dbc43b4521b60b0940a66b83666142a7669f6e5dbcefacedf8f27d78e', '0d9bc7f1e8542e0a6561f5f7e90d65c2', 'CLIENTE', 1, 0, 0, NULL, '2026-11-10 14:27:26');
+
+--
 -- Disparadores `usuarios`
 --
 DELIMITER $$
@@ -365,10 +383,10 @@ DELIMITER ;
 --
 
 --
--- Indices de la tabla `auditoria_seguridad`
+-- Indices de la tabla `auditoria_usuarios`
 --
-ALTER TABLE `auditoria_seguridad`
-  ADD PRIMARY KEY (`id_auditoria`);
+ALTER TABLE `auditoria_usuarios`
+  ADD PRIMARY KEY (`d_auditoria`);
 
 --
 -- Indices de la tabla `categorias`
@@ -440,10 +458,10 @@ ALTER TABLE `usuarios`
 --
 
 --
--- AUTO_INCREMENT de la tabla `auditoria_seguridad`
+-- AUTO_INCREMENT de la tabla `auditoria_usuarios`
 --
-ALTER TABLE `auditoria_seguridad`
-  MODIFY `id_auditoria` int(11) NOT NULL AUTO_INCREMENT;
+ALTER TABLE `auditoria_usuarios`
+  MODIFY `d_auditoria` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT de la tabla `categorias`
@@ -491,7 +509,7 @@ ALTER TABLE `proveedores`
 -- AUTO_INCREMENT de la tabla `usuarios`
 --
 ALTER TABLE `usuarios`
-  MODIFY `id_usuario` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id_usuario` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- Restricciones para tablas volcadas
